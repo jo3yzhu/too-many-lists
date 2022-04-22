@@ -124,7 +124,7 @@ impl<'a, T> Iterator for IterMut<'a, T> {
 }
 
 impl<'a, T> List<T> {
-    // TODO: why use '_ instead of 'a ??
+    // TODO: why use '_ instead of 'a, or won't compile?
     fn iter_mut(&mut self) -> IterMut<'_, T> {
         IterMut {
             next: self.head.as_deref_mut(),
