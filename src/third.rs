@@ -42,6 +42,28 @@ impl<T> List<T> {
     }
 }
 
+impl<T> List<T> {
+    pub fn iter(&self) -> Iter<T> {
+        Iter {
+            next: self.head.as_deref(),
+        }
+    }
+}
+
+pub struct Iter<'a, T> {
+    next: Option<&'a Node<T>>,
+}
+
+impl<'a, T> Iterator for Iter<'a, T> {
+    type Item = &'a T;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.next.map(|node| {
+            self.next = node.next.as_deref();
+            &node.val
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -65,16 +87,14 @@ mod tests {
 
     #[test]
     fn basic_test() {
-        
-
+        // []
         let mut list = List::<i32>::new();
         assert_eq!(list.head(), None);
-    
+
         // 3 -> 2 -> 1
         let mut list = list.prepend(1).prepend(2).prepend(3);
         assert_eq!(list.head(), Some(&3));
 
-        
         // 3
         // |
         // v
@@ -99,7 +119,7 @@ mod tests {
         // 1
         let mut list = list.tail();
         assert_eq!(list.head(), Some(&1));
-        
+
         // []
         let mut list = list.tail();
         assert_eq!(list.head(), None);
@@ -107,5 +127,15 @@ mod tests {
         // []
         let list = list.tail();
         assert_eq!(list.head(), None);
+    }
+
+    #[test]
+    fn iter_test() {
+        let list = List::new().prepend(1).prepend(2).prepend(3);
+
+        let mut iter = list.iter();
+        assert_eq!(iter.next(), Some(&3));
+        assert_eq!(iter.next(), Some(&2));
+        assert_eq!(iter.next(), Some(&1));
     }
 }
