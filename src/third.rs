@@ -64,6 +64,24 @@ impl<'a, T> Iterator for Iter<'a, T> {
     }
 }
 
+impl<T> Drop for List<T> {
+    fn drop(&mut self) {
+        // head: Option<Rc<Node<T>>>
+        let mut head = self.head.take();
+        // node: Rc<Node<T>>
+        while let Some(node) = head {
+            // if reference count is exactly 1, take the ownership
+            if let Ok(mut node) = Rc::try_unwrap(node) {
+                // node: Node<T>
+                head = node.next.take();
+            } else {
+                break;
+            }
+        }
+         
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
