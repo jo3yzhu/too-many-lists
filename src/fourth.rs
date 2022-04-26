@@ -1,6 +1,9 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
+// Rc<RefCell<T>> or Arc<RefCell<T>> is a very common pattern because:
+// Rc or Arc provide containers that can be shared, yet they can be only borrowed as shraed
+// references, not mutable references. Mutablility would be avaliable if we put a RefCell<T> inside shared pointer
 type Link<T> = Option<Rc<RefCell<Node<T>>>>;
 
 struct Node<T> {
@@ -53,8 +56,11 @@ impl<T> List<T> {
                 Some(new_head) => {
                     new_head.borrow_mut().prev.take();
                     self.head = Some(new_head);
-                },
+                }
                 None => {
+                    // when there's only one node in the list, the head
+                    // and tail points the same node
+                    // so extra removal is required when there's only one node
                     self.tail.take();
                 }
             }
@@ -70,9 +76,9 @@ mod tests {
     #[test]
     fn basic_test() {
         let mut list = List::<i32>::new();
-        list.push_front(1); 
-        list.push_front(2); 
-        list.push_front(3); 
+        list.push_front(1);
+        list.push_front(2);
+        list.push_front(3);
         assert_eq!(list.pop_front(), Some(3));
         assert_eq!(list.pop_front(), Some(2));
         assert_eq!(list.pop_front(), Some(1));
