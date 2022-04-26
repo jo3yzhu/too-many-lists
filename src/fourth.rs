@@ -51,6 +51,21 @@ impl<T> List<T> {
         }
     }
 
+    fn push_back(&mut self, val: T) {
+        let new_tail = Node::new(val);
+        match self.tail.take() {
+            None => {
+                self.tail = Some(new_tail.clone());
+                self.head = Some(new_tail);
+            }
+            Some(old_tail) => {
+                old_tail.borrow_mut().next = Some(new_tail.clone());
+                new_tail.borrow_mut().prev = Some(old_tail);
+                self.tail = Some(new_tail);
+            }
+        }
+    }
+
     fn pop_front(&mut self) -> Option<T> {
         self.head.take().map(|old_head| {
             match old_head.borrow_mut().next.take() {
@@ -69,17 +84,35 @@ impl<T> List<T> {
         })
     }
 
+    fn pop_back(&mut self) -> Option<T> {
+        self.tail.take().map(|old_tail| {
+            match old_tail.borrow_mut().prev.take() {
+                Some(new_tail) => {
+                    new_tail.borrow_mut().next.take();
+                    self.tail = Some(new_tail);
+                }
+                None => {
+                    self.head.take();
+                }
+            }
+            Rc::try_unwrap(old_tail).ok().unwrap().into_inner().val
+        })
+    }
+
     // peek function requires shared reference of the first element.
     // however, a trival shared reference &T cannot be retrieved via RefCell<T>
     // because &T cannot keep track of every reference generated from RefCell<T>
     // so if we want to get reference, use Ref<T> instead of &T
     fn peek_front(&self) -> Option<Ref<T>> {
-        self.head.as_ref().map(|node| {
-            // head: Option<Rc<RefCell<Node<T>>>>
-            // node: Rc<RefCell<Node<T>>>
-            // node.borrow(): Ref<Node<T>>
-            Ref::map(node.borrow(), |node| &node.val)
-        })
+        self.head  // Option<Rc<RefCell<Node<T>>>>
+            .as_ref()  // Option<&Rc<RefCell<Node<T>>>>
+            .map(|node| Ref::map(node.borrow(), |node| &node.val))
+    }
+
+    fn peek_back(&self) -> Option<Ref<T>> {
+        self.tail// Option<Rc<RefCell<Node<T>>>>
+            .as_ref() // Option<&Rc<RefCell<Node<T>>>>
+            .map(|node| Ref::map(node.borrow(), |node| &node.val))
     }
 }
 
@@ -96,20 +129,28 @@ mod tests {
     #[test]
     fn basic_test() {
         let mut list = List::<i32>::new();
+        // 3 -> 1 -> 2 -> 4
         list.push_front(1);
-        list.push_front(2);
+        list.push_back(2);
         list.push_front(3);
+        list.push_back(4);
+
         assert_eq!(list.pop_front(), Some(3));
-        assert_eq!(list.pop_front(), Some(2));
+        assert_eq!(list.pop_back(), Some(4));
         assert_eq!(list.pop_front(), Some(1));
+        assert_eq!(list.pop_back(), Some(2));
+
         assert_eq!(list.pop_front(), None);
+        assert_eq!(list.pop_back(), None);
     }
 
     #[test]
     fn peek_test() {
         let mut list = List::<i32>::new();
+        // 2 -> 1
         list.push_front(1);
         list.push_front(2);
         assert_eq!(&*list.peek_front().unwrap(), &2);
+        assert_eq!(&*list.peek_back().unwrap(), &1);
     }
 }
