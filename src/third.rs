@@ -78,7 +78,6 @@ impl<T> Drop for List<T> {
                 break;
             }
         }
-         
     }
 }
 
