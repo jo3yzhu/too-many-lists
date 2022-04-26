@@ -1,3 +1,4 @@
+use std::cell::Ref;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -67,6 +68,25 @@ impl<T> List<T> {
             Rc::try_unwrap(old_head).ok().unwrap().into_inner().val
         })
     }
+
+    // peek function requires shared reference of the first element.
+    // however, a trival shared reference &T cannot be retrieved via RefCell<T>
+    // because &T cannot keep track of every reference generated from RefCell<T>
+    // so if we want to get reference, use Ref<T> instead of &T
+    fn peek_front(&self) -> Option<Ref<T>> {
+        self.head.as_ref().map(|node| {
+            // head: Option<Rc<RefCell<Node<T>>>>
+            // node: Rc<RefCell<Node<T>>>
+            // node.borrow(): Ref<Node<T>>
+            Ref::map(node.borrow(), |node| &node.val)
+        })
+    }
+}
+
+impl<T> Drop for List<T> {
+    fn drop(&mut self) {
+        while self.pop_front().is_some() {}
+    }
 }
 
 #[cfg(test)]
@@ -83,5 +103,13 @@ mod tests {
         assert_eq!(list.pop_front(), Some(2));
         assert_eq!(list.pop_front(), Some(1));
         assert_eq!(list.pop_front(), None);
+    }
+
+    #[test]
+    fn peek_test() {
+        let mut list = List::<i32>::new();
+        list.push_front(1);
+        list.push_front(2);
+        assert_eq!(&*list.peek_front().unwrap(), &2);
     }
 }
